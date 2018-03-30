@@ -1,3 +1,7 @@
+/*
+ * 3/29/2018 - Devon Bray - http://www.esologic.com/multiple-frequency-counter-arduino/
+ */
+
 int TACK_SIG_PIN = 2;
 int SPED_SIG_PIN = 3;
 
@@ -30,9 +34,11 @@ void loop() {
 
   calc_freqs();
   
-  Serial.print((abs(period_averages_ms[TACKSIGINDEX] - 16)/16)*100);
+  // Serial.print((abs(period_averages_ms[TACKSIGINDEX] - 5)/5)*100);
+  Serial.print(period_averages_ms[TACKSIGINDEX]);
   Serial.print(",");
-  Serial.print((abs(period_averages_ms[SPEDSIGINDEX] - 12)/12)*100);
+  // Serial.print((abs(period_averages_ms[SPEDSIGINDEX] - 10)/10)*100);
+  Serial.print(period_averages_ms[SPEDSIGINDEX]);
   Serial.println("");
 
   
