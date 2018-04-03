@@ -2,9 +2,15 @@
  * 3/29/2018 - Devon Bray - http://www.esologic.com/multiple-frequency-counter-arduino/
  * 
  * I've written most of the important notes as comments in the source, but a couple more details:
- * - The important data is stored in `period_averages_ms` and `frequency_averages_hz`. You address them using the indices defined at the top of the file. Make sure you call `compute_counts()`  before using this data. Keep it somewhere in main(). 
+ * 
+ * - The important data is stored in `period_averages_ms` and `frequency_averages_hz`. You address them using the indices defined at the top of the file. These arrays get updated each time `compute_counts()` is called. Keep it `compute_counts()` somewhere in the main() loop. 
+ * 
  * - You could easily add more frequencies, you just have to `NUMSIGS`, make a specific ISR, and another `attachInterrupt` line in setup()
+ * 
  * - It uses [interrupts](https://playground.arduino.cc/Code/Interrupts) which might not be right for your proejct, but normally shouldn't get in the way of too much stuff.
+ * 
+ * - If the ISR hasn't seen a new edge in 1000000us, both `period_averages_ms[p_index]` and `frequency_averages_hz[p_index]` will be set to zero!
+ * - This means that slowest frequency that this code can detect is 1hz!
  * 
  */
 
@@ -64,27 +70,26 @@ void compute_counts() {
     float buffer_sum = 0;
 
     while (period_buffer_locked[p_index]) {}; // wait around for the ISR to finish
-
-    period_buffer_locked[p_index] = true;
-  
-    for (int j = 0; j < BUFFSIZE; j++) {
-      buffer_sum += period_buffers[p_index][j];
-    }
     
-    period_buffer_locked[p_index] = false;
-
+    period_buffer_locked[p_index] = true; // ISR won't add new data to `period_buffers`
+    if ((micros() - previous_edge_times_us[p_index]) < 1000000) {
+      for (int j = 0; j < BUFFSIZE; j++) {
+        buffer_sum += period_buffers[p_index][j];
+      }
+    }
+    period_buffer_locked[p_index] = false; // ISR will now add new data to `period_buffers`
+    
     if (buffer_sum > 0){
       period_averages_ms[p_index] = ((buffer_sum / (float)BUFFSIZE)) / 1000;
-      
-      frequency_averages_hz[p_index] = (1 / period_averages_ms[p_index]) * 1000;
-      
-    } else {
+      frequency_averages_hz[p_index] = (1 / period_averages_ms[p_index]) * 1000;  
+    } 
+    else {
       period_averages_ms[p_index] = 0;
       frequency_averages_hz[p_index] = 0;
-    } 
+    }
+        
   }
 }
-
 
 void new_edge(int period_index) {
 
